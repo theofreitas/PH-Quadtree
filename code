@@ -1,0 +1,89 @@
+import math
+
+class Point2D:
+    def __init__(self, x, y, data=None):
+        self.x = x
+        self.y = y
+        self.data = data
+
+class Reg_Node:
+    def __init__(self, point):
+        self.point = point
+
+class PR_Quadtree:
+    def __init__(self):
+        self.root = None
+
+    def __init__(self, points):
+        self.root = None
+        for point in points:
+            self.insert(point)
+
+    def insert(self, point, node=None):
+        if not node:
+            node = self.root
+
+        if not node:
+            self.root = Reg_Node(point)
+        else:
+            if self.inBoundary(point, node):
+                if not node.point:
+                    node.point = Reg_Node(point)
+                else:
+                    self.insert(point, node.point)
+            else:
+                # Handle the case where the point is outside the boundary of the node
+                pass
+
+    def search(self, point, node=None):
+        if not node:
+            node = self.root
+
+        if not node:
+            return None
+
+        if node.point and node.point.point.x == point.x and node.point.point.y == point.y:
+            return node.point
+        elif self.inBoundary(point, node):
+            return self.search(point, node.point)
+        else:
+            return None
+
+    def inBoundary(self, point, node):
+        # Check if the point is within the boundary of the node
+        return node and node.point and (point.x >= node.point.point.x and point.x <= node.point.point.x and
+                                        point.y >= node.point.point.y and point.y <= node.point.point.y)
+
+    def rangeQuery(self, min_x, min_y, max_x, max_y, node=None):
+        if not node:
+            node = self.root
+
+        result = []
+
+        if node:
+            if node.point:
+                if min_x <= node.point.point.x <= max_x and min_y <= node.point.point.y <= max_y:
+                    result.append(node.point)
+            if node.SE and self.inBoundary(min_x, min_y, max_x, max_y, node.SE):
+                result.extend(self.rangeQuery(min_x, min_y, max_x, max_y, node.SE))
+            if node.SW and self.inBoundary(min_x, min_y, max_x, max_y, node.SW):
+                result.extend(self.rangeQuery(min_x, min_y, max_x, max_y, node.SW))
+            if node.NE and self.inBoundary(min_x, min_y, max_x, max_y, node.NE):
+                result.extend(self.rangeQuery(min_x, min_y, max_x, max_y, node.NE))
+            if node.NW and self.inBoundary(min_x, min_y, max_x, max_y, node.NW):
+                result.extend(self.rangeQuery(min_x, min_y, max_x, max_y, node.NW))
+
+        return result
+
+    def nearestPoint(self, center, radius, node=None):
+        possible_points = self.rangeQuery(center.x - radius, center.y - radius, center.x + radius, center.y + radius)
+        min_distance = float('inf')
+        nearest_point = None
+
+        for point in possible_points:
+            distance = math.sqrt((center.x - point.point.x) ** 2 + (center.y - point.point.y) ** 2)
+            if distance < min_distance:
+                min_distance = distance
+                nearest_point = point
+
+        return nearest_point
